@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css">
+    <title>Climafy - Clima em tempo real</title>
+</head>
+<body>
+    <header> 
+        <img class="logo" src="./assets/logo.png" alt="logo">
+        
+        <button class="unit-toggle">°C  <span class="change">Clique para mudar</span></button>
+    </header>
+    <div class="app-container">
+        <section class="search-section">
+            <input 
+                type="text"
+                id="cityInput"
+                placeholder="Pesquisar uma cidade..."
+                autocomplete="off"
+            />
+            <button id="searchBtn" aria-label="Buscar cidade">
+                <img src="./assets/search.svg" alt="search icon">
+            </button>
+        </section>
+
+        <section class="weather-section" id="weatherInfo"></section>
+    </div>
+
+    <script src="./config.js"></script>
+    <script src="./script.js"></script>
+</body>
+</html>
