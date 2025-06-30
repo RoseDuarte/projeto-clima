@@ -1,40 +1,44 @@
-const input = document.querySelector("#cityInput");
-const searchBtn = document.querySelector("#searchBtn");
-const weatherInfo = document.querySelector("#weatherInfo");
+const input = document.getElementById("cityInput");
+const searchBtn = document.getElementById("searchBtn");
+const weatherInfo = document.getElementById("weatherInfo");
 const weatherSection = document.querySelector(".weather-section");
 const toggleBtn = document.querySelector(".unit-toggle")
 
 let unit = "metric";
 let currentCity = "";
 
-function getUnitLabel() {
-    return unit === "metric" ? "°C" : "°F";
-  }
+const placeholderDefault = "Pesquisar uma cidade...";
+const placeholderLoading = "Buscando...";
 
-function getToggleText() {
-    return unit === "metric"
-    ? "°C <span class='change'>Clique para mudar</span>"
-    : "°F <span class='change'>Clique para mudar</span>"
-}
+const getUnitLabel = () => (unit === "metric" ? "°C" : "°F");
+const getToggleText = () => `${getUnitLabel()} <span class="change">Clique para mudar</span>`;
+
+const skeletonMarkup = `
+    <div class="skeleton-title"></div>
+    <div class="skeleton-icon"></div>
+    <div class="skeleton-line"></div>
+    <div class="skeleton-line short"></div>
+`;
 
 async function fetchWeather(city) {
+    setLoading(true);
+
     try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=${unit}&lang=pt_br`;
+        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+            city
+        )}&appid=${API_KEY}&units=${unit}&lang=pt_br`; 
 
         const res = await fetch(url);
-
-        if(!res.ok) {
-            throw new Error("Cidade não encontrada")
-        }
+        if(!res.ok) throw new Error("Cidade não encontrada")
 
         const data = await res.json();
-        renderWeather(data);
-        weatherSection.classList.add("show");
-        currentCity = city;
+        currentCity = data.name;
+        renderWeather(data)
+        weatherSection.classList.add("show")
     } catch (error) {
-        weatherInfo.classList.add("error");
-        weatherInfo.innerHTML = `<p>${error.message}</p>`;
-        weatherSection.classList.remove("show");
+        showError(error.message)
+    } finally {
+        setLoading(false)
     }
 }
 
@@ -42,35 +46,47 @@ function renderWeather(data) {
     const {name} = data;
     const {icon, description} = data.weather[0];
     const {temp, feels_like, humidity} = data.main;
-
-    const unitSymbol = getUnitLabel();
+    const unitSymbol = getUnitLabel()
 
     weatherSection.classList.remove("fade-in")
     weatherSection.classList.add("fade-out")
 
-    setTimeout(() => {
+    weatherSection.addEventListener("transitionend", () => {
         weatherInfo.classList.remove("error");
-    weatherInfo.innerHTML = `
-        <h2>${name}</h2>
-        <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}">
-        <p><strong>${Math.round(temp)}${unitSymbol}</strong> - ${description}</p>
-        <p>Sensação térmica: ${Math.round(feels_like)}${unitSymbol}</p>
-        <p>Umidade: ${humidity}%</p>
+        weatherInfo.innerHTML = `
+            <img src="https://openweathermap.org/img/wn/${icon}@2x.png" alt="${description}">
+            <p><strong>${Math.round(temp)}${unitSymbol}</strong> ‑ ${description}</p>
+            <p>Sensação térmica: ${Math.round(feels_like)}${unitSymbol}</p>
+            <p>Umidade: ${humidity}%</p>
+        `;
+        weatherSection.classList.remove("fade-out");
+        weatherSection.classList.add("fade-in")
+    }, {once: true} );
+}
 
-    `;
+function setLoading(isLoading) {
+    if(isLoading) {
+        input.placeholder = placeholderLoading;
+        input.disabled = true;
+        weatherInfo.innerHTML = skeletonMarkup;
+        weatherInfo.classList.remove("error")
+        weatherSection.classList.add("show")
+    } else {
+        input.placeholder = placeholderDefault;
+        input.disabled = false;
+    }
+}
 
-    weatherSection.classList.remove("fade-out")
-    weatherSection.classList.add("fade-in")
-    }, 300)
+function showError(msg) {
+    weatherInfo.classList.add("error")
+    weatherInfo.innerHTML = `<p>${msg}</p>`
+    weatherSection.classList.add("show");
 }
 
 searchBtn.addEventListener("click", () => {
     const city = input.value.trim();
-
-    if(city !== "") {
-        fetchWeather(city)
-    }
-})
+    if(city) fetchWeather(city)
+});
 
 input.addEventListener("keypress", (e) => {
     if(e.key === "Enter") {
@@ -82,39 +98,32 @@ input.addEventListener("keypress", (e) => {
 toggleBtn.addEventListener("click", () => {
     unit = unit === "metric" ? "imperial" : "metric";
     toggleBtn.innerHTML = getToggleText();
-
-    if(currentCity) {
-        fetchWeather(currentCity)
-    }
-})
-
-toggleBtn.innerHTML = getToggleText();
+    if(currentCity) fetchWeather(currentCity)
+});
 
 window.addEventListener("load", () => {
     if("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const {latitude, longitude} = position.coords;
-
-                const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=${unit}&lang=pt_br`;
-
+            async ({coords: {latitude, longitude}}) => {
                 try {
+                    setLoading(true);
+                    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=${unit}&lang=pt_br`;
                     const res = await fetch(url);
                     if(!res.ok) throw new Error("Erro ao buscar o clima");
 
                     const data = await res.json();
                     currentCity = data.name;
-                    renderWeather(data)
+                    renderWeather(data);
                     weatherSection.classList.add("show")
                 } catch (error) {
-                    console.error("Erro ao buscar clima pela localização:", error.message);
+                    showError(error)
+                } finally {
+                    setLoading(false)
                 }
             },
-            (error) => {
-                console.warn("Usuário negou ou ocorreu erro de localização:", error.message);
-            }
+            (error) => console.warn("Localização negada/erro:", error.message)
         );
     } else {
-        console.warn("Geolocalização não é suportada pelo navegador.");
+        console.warn("Geolocalização não suportada");
     }
 })
