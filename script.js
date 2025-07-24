@@ -24,19 +24,17 @@ async function fetchWeather(city) {
     setLoading(true);
 
     try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
-            city
-        )}&appid=${API_KEY}&units=${unit}&lang=pt_br`; 
-
+        const url = `/api/weather?city=${encodeURIComponent(city)}&unit=${unit}`;
         const res = await fetch(url);
-        if(!res.ok) throw new Error("Cidade não encontrada")
-
         const data = await res.json();
+        
+        if (!res.ok) throw new Error(data.error || "Cidade não encontrada");
+
         currentCity = data.name;
         renderWeather(data)
         weatherSection.classList.add("show")
     } catch (error) {
-        showError(error.message)
+        showError(error.message);
     } finally {
         setLoading(false)
     }
@@ -107,16 +105,17 @@ window.addEventListener("load", () => {
             async ({coords: {latitude, longitude}}) => {
                 try {
                     setLoading(true);
-                    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=${unit}&lang=pt_br`;
+                    const url = `/api/weather?lat=${latitude}&lon=${longitude}&unit=${unit}`;
                     const res = await fetch(url);
-                    if(!res.ok) throw new Error("Erro ao buscar o clima");
-
                     const data = await res.json();
+                    
+                    if (!res.ok) throw new Error(data.error || "Erro ao buscar o clima");
+
                     currentCity = data.name;
                     renderWeather(data);
                     weatherSection.classList.add("show")
                 } catch (error) {
-                    showError(error)
+                    showError(error.message);
                 } finally {
                     setLoading(false)
                 }
